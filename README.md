@@ -1,5 +1,5 @@
 # ray-on-gpu
-This repository showcases a simple example of running a GPU workload on GKE with Ray. At the core once everything is setup, [main.py](main.py) runs an entrypoint script, [entrypoint_script.sh](entrypoint_script.sh) which calls the pytorch workload [simple_pytorch.py](simple_pytorch.py).
+This repository showcases a simple example of running a GPU workload on GKE with Ray. Assuming everything is setup correctly, [main.py](main.py) runs the entrypoint script, [entrypoint_script.sh](entrypoint_script.sh), which calls the pytorch workload [simple_pytorch.py](simple_pytorch.py).
 
 If you want to run your own workloads using this repository as a skeleton, you will need to use your own docker image in [values.yaml](helm/values.yaml) and will need to update the entrypoint script to match your workload.
 
@@ -19,8 +19,7 @@ $ gcloud container clusters create <CLUSTER_NAME> \
 ### Set up the node pool
 ```
 $ gcloud container node-pools create <NODE POOL> \
-    --accelerator type=nvidia-h100-80gb \
-    --count=8 \
+    --accelerator type=nvidia-h100-80gb,count=8 \
     --zone us-central1-c \
     --cluster <CLUSTER_NAME> \
     --num-nodes 4 \
@@ -60,7 +59,7 @@ For more information on the image value, please refer to ["Create Docker Image"]
 
 Command to create the ray cluster:
 ```
-helm install <POD_PREFIX> -f helm/values.yaml helm/
+helm install simple-torch -f helm/values.yaml helm/
 ```
 
 ### Create Docker Image

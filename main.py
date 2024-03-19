@@ -12,7 +12,7 @@ GPUS_PER_NODE = 8
 @ray.remote(num_gpus=GPUS_PER_NODE)
 def run(node_rank):
     os.environ["NODE_RANK"] = str(node_rank)
-    os.environ["MASTER_ADDR"] = "pytorch-leader-test"
+    os.environ["MASTER_ADDR"] = "pytorch-leader-simple-torch"
     os.environ["MASTER_PORT"] = "6002"
 
     print("Running entrypoint script.")
