@@ -1,0 +1,3 @@
+nNodes: 4
+gpusPerNode: 8
+image: us-central1-docker.pkg.dev/supercomputer-testing/gersonkroiz-ray/torch-basic-image:nvidia_pt_container_23_04_v3

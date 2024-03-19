@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "pytorch-leader-{{$.Release.Name}}"
+spec:
+  selector:
+    name: "pytorch-leader-{{$.Release.Name}}"
+  clusterIP: None
+  ports:
+  - name: pytorch-leader
+    port: 6002
+---
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: {{ include "helm.fullname" . }}-raycluster
+  labels:
+    controller-tools.k8s.io: "1.0"
+  {{- include "helm.labels" . | nindent 4 }}
+spec:
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: 0.0.0.0
+    template:
+      spec:
+        containers:
+        - image: {{$.Values.image}}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - ray stop
+          name: ray-head
+  rayVersion: 2.8.0
+  workerGroupSpecs:
+  - groupName: small-group
+    maxReplicas: 300
+    minReplicas: 1
+    rayStartParams:
+      num-gpus: "{{$.Values.gpusPerNode}}"
+    replicas: {{$.Values.nNodes}}
+    template:
+      metadata:
+        annotations:
+          key: value
+        labels:
+          key: value
+          name: "pytorch-leader-{{$.Release.Name}}"
+      spec:
+        containers:
+        - image: {{$.Values.image}}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - ray stop
+          name: simple-pytorch
+          env:
+            - name: GPUS_PER_NODE
+              value: "{{$.Values.gpusPerNode}}"
+            - name: NUM_VMS
+              value: "{{$.Values.nNodes}}"
+          resources:
+            limits:
+              nvidia.com/gpu: {{$.Values.gpusPerNode}}
+            requests:
+              nvidia.com/gpu: {{$.Values.gpusPerNode}}
