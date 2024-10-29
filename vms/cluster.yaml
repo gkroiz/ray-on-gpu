@@ -1,0 +1,80 @@
+cluster_name: gpu-cluster
+max_workers: 100
+
+provider:
+  type: gcp
+  region: us-central1
+  availability_zone: us-central1-a
+  project_id: <YOUR_PROJECT_ID>
+
+head_node_type: ray_head_node
+
+available_node_types:
+  ray_head_node:
+    node_config:
+      machineType: n1-standard-8
+      disks:
+        - boot: true
+          autoDelete: true
+          type: PERSISTENT
+          initializeParams:
+            diskSizeGb: 50
+            sourceImage: projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts
+      metadata:
+        install-nvidia-driver: 'false'
+      serviceAccounts:
+        - email: <YOUR_SERVICE_ACCOUNT_EMAIL>
+          scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+    resources: {"CPU": 8}
+    min_workers: 0
+    max_workers: 0
+
+  ray_worker_node:
+    node_config:
+      machineType: g2-standard-48 # Required for L4 GPUs
+      guestAccelerators:
+        - acceleratorType: nvidia-l4 # Use L4 GPUs
+          acceleratorCount: 4 # Other GPU generations may have different accelerator counts
+      disks:
+        - boot: true
+          autoDelete: true
+          type: PERSISTENT
+          initializeParams:
+            diskSizeGb: 50
+            sourceImage: projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts
+      metadata:
+        install-nvidia-driver: 'true'
+      serviceAccounts:
+        - email: <YOUR_SERVICE_ACCOUNT_EMAIL>
+          scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+      scheduling:
+        onHostMaintenance: "TERMINATE"  # Disable live migration
+    resources: {"CPU": 48, "GPU": 4} # Should match number of CPUs and GPUs of worker node
+    min_workers: 1
+    max_workers: 4
+
+head_setup_commands:
+  # Install Jax
+  - pip install -U "jax[cpu]==0.4.35"
+
+# Ensure Python, CUDA, and PyTorch are installed on the worker nodes
+worker_setup_commands:
+  # Install CUDA
+  - wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+  - sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+  - wget https://developer.download.nvidia.com/compute/cuda/12.4.1/local_installers/cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+  - sudo dpkg -i cuda-repo-ubuntu2204-12-4-local_12.4.1-550.54.15-1_amd64.deb
+  - sudo cp /var/cuda-repo-ubuntu2204-12-4-local/cuda-*-keyring.gpg /usr/share/keyrings/
+  - sudo apt-get update
+  - sudo apt-get -y install cuda-toolkit-12-4
+  - sudo apt-get install -y cuda-drivers-550
+  # Install Jax
+  - pip install -U "jax[cuda12]==0.4.35"
+
+initialization_commands:
+  - sudo apt-get update
+  - sudo apt install python3-pip -y
+  - pip install 'ray[default]==2.10.0'
+  - pip install "ray[train]==2.10.0"
